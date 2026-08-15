@@ -1,0 +1,537 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Alfredough Pizza Cafe - Interactive 3D Menu</title>
+
+  <!-- model-viewer loaded async -->
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js" async></script>
+
+  <style>
+    :root{
+      --bg:#121212;
+      --card:#1e1e1e;
+      --muted:#aaa;
+      --accent:#f39c12;
+      --price:#2ecc71;
+      --radius:12px;
+      --max-w:1200px;
+      --gap:16px;
+      --ui-bg: rgba(0,0,0,0.6);
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      padding:20px;
+      font-family:"Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background:var(--bg);
+      color:#fff;
+      display:flex;
+      justify-content:center;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    .container{width:100%;max-width:var(--max-w)}
+    header{text-align:center;margin-bottom:18px}
+    header h1{margin:4px 0;color:var(--accent);letter-spacing:2px;font-size:2rem}
+    header p{margin:0;color:var(--muted);font-size:0.95rem}
+
+    .category-title{
+      color:var(--accent);
+      border-bottom:2px solid var(--accent);
+      padding-bottom:6px;
+      margin:26px 0 12px 0;
+      font-size:1.1rem;
+      text-transform:uppercase;
+    }
+
+    /* Responsive grid */
+    .menu-grid{
+      display:grid;
+      gap:var(--gap);
+      grid-template-columns:1fr;
+    }
+    @media(min-width:640px){.menu-grid{grid-template-columns:repeat(2,1fr)}}
+    @media(min-width:992px){.menu-grid{grid-template-columns:repeat(3,1fr)}}
+
+    .menu-card{
+      background:var(--card);
+      border-radius:var(--radius);
+      padding:14px;
+      box-shadow:0 6px 18px rgba(0,0,0,0.55);
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+
+    .item-header{display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:700;font-size:1.02rem}
+    .price{color:var(--price);font-weight:700}
+    .item-desc{color:var(--muted);font-size:0.9rem;margin:0}
+
+    .food-img-wrap{
+      width:100%;
+      height:160px;
+      background:#2a2a2a;
+      border-radius:8px;
+      overflow:hidden;
+      margin-bottom:6px;
+    }
+    .food-img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      display:block;
+    }
+
+    /* 3D Viewer */
+    model-viewer{
+      width:100%;
+      aspect-ratio:16/9;
+      background-color:#2a2a2a;
+      border-radius:8px;
+      overflow:hidden;
+      min-height:160px;
+      display:block;
+    }
+
+    /* AR badge & actions */
+    .ar-badge {
+      background: var(--accent);
+      color: #000;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius:6px;
+      display:inline-block;
+    }
+
+    .card-actions { display:flex; gap:8px; margin-top:6px; align-items:center; }
+    .btn {
+      background:transparent;
+      border:1px solid rgba(255,255,255,0.08);
+      color:inherit;
+      padding:8px 10px;
+      border-radius:8px;
+      cursor:pointer;
+      font-weight:600;
+    }
+    .btn.primary {
+      background:var(--accent);
+      color:#000;
+      border:none;
+    }
+    .btn.icon {
+      padding:6px 8px;
+      font-weight:700;
+      border-radius:6px;
+    }
+
+    /* Cart UI (fixed button + slide-over panel) */
+    .cart-toggle {
+      position:fixed;
+      right:18px;
+      bottom:18px;
+      background:var(--accent);
+      color:#000;
+      border:none;
+      padding:12px 14px;
+      border-radius:999px;
+      box-shadow:0 6px 18px rgba(0,0,0,0.5);
+      font-weight:700;
+      cursor:pointer;
+      z-index:1200;
+    }
+    .cart-count {
+      background:#000;
+      color:#fff;
+      border-radius:50%;
+      display:inline-block;
+      min-width:20px;
+      height:20px;
+      line-height:20px;
+      text-align:center;
+      font-size:0.8rem;
+      margin-left:8px;
+      vertical-align:middle;
+    }
+
+    .cart-panel {
+      position:fixed;
+      right:0;
+      top:0;
+      height:100%;
+      width:min(420px,100%);
+      background:#0f0f0f;
+      box-shadow:-10px 0 30px rgba(0,0,0,0.6);
+      transform:translateX(110%);
+      transition:transform .28s ease;
+      z-index:1250;
+      padding:18px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .cart-panel.open { transform:translateX(0); }
+    .cart-panel h3 { margin:0 0 2px 0; color:var(--accent); }
+    .cart-items { overflow:auto; max-height:60vh; display:flex; flex-direction:column; gap:8px; padding-right:6px; }
+    .cart-item { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:8px; background:rgba(255,255,255,0.02); border-radius:8px; }
+    .cart-item .meta { display:flex; gap:8px; align-items:center; }
+    .qty-controls { display:flex; gap:6px; align-items:center; }
+    .cart-total { margin-top:auto; display:flex; justify-content:space-between; align-items:center; gap:10px; font-weight:700; }
+
+    /* Overlay */
+    .overlay {
+      position:fixed;
+      inset:0;
+      background:var(--ui-bg);
+      opacity:0;
+      visibility:hidden;
+      transition:opacity .18s ease;
+      z-index:1240;
+    }
+    .overlay.visible { opacity:1; visibility:visible; }
+
+    /* Small accessibility helpers */
+    .sr-only { position:absolute !important; height:1px; width:1px; overflow:hidden; clip:rect(1px,1px,1px,1px); white-space:nowrap; border:0; padding:0; margin:-1px; }
+    button:focus, a:focus { outline:3px solid rgba(243,156,18,0.25); outline-offset:2px; }
+
+    /* Reduced motion preference */
+    @media (prefers-reduced-motion: reduce) {
+      .cart-panel { transition:none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>ALFREDOUGH PIZZA CAFE</h1>
+      <p>Powered by R&amp;F STUDIO — Interactive 3D Menu (client-side demo)</p>
+    </header>
+
+    <main>
+      <!-- CHICKEN BURGERS -->
+      <section aria-labelledby="chicken-burgers">
+        <h2 id="chicken-burgers" class="category-title">Chicken Burgers</h2>
+        <div class="menu-grid" role="list">
+
+          <!-- CARD: Zinger (3D/AR) -->
+          <article class="menu-card" role="listitem" aria-labelledby="zinger-title">
+            <div class="item-header">
+              <div id="zinger-title">Zinger Burger</div>
+              <div class="price">Rs. <span data-price>400</span></div>
+            </div>
+
+            <figure>
+              <!-- model-viewer lazy: data-src + data-ios-src. Poster flagged in slot. -->
+              <model-viewer
+                data-src="https://modelviewer.dev/shared-assets/models/glTF-Sample-Assets/2.0/Burger/glTF-Binary/Burger.glb"
+                data-ios-src="path/to/ZingerBurger.usdz"
+                ar
+                ar-modes="webxr scene-viewer quick-look"
+                camera-controls
+                interaction-prompt="auto"
+                alt="3D preview of Zinger Burger"
+                tabindex="0"
+                aria-label="3D preview: Zinger Burger. Tap to interact or view in AR"
+                poster="https://modelviewer.dev/shared-assets/models/glTF-Sample-Assets/2.0/Burger/thumbnail.png"
+                loading="lazy">
+                <img slot="poster" src="https://modelviewer.dev/shared-assets/models/glTF-Sample-Assets/2.0/Burger/thumbnail.png" alt="">
+              </model-viewer>
+              <figcaption class="item-desc">Tap to rotate. Use AR on supported devices.</figcaption>
+            </figure>
+
+            <div class="card-actions">
+              <button class="btn primary add-to-cart"
+                data-name="Zinger Burger"
+                data-price="400"
+                aria-label="Add Zinger Burger to cart">Add to cart
+              </button>
+              <button class="btn" type="button" aria-label="More info about Zinger Burger" onclick="alert('Zinger Burger — crispy chicken, lettuce, tomato, house sauce.')">Info</button>
+            </div>
+          </article>
+
+          <!-- CARD: Zinger Cheese (image) -->
+          <article class="menu-card" role="listitem" aria-labelledby="zinger-cheese">
+            <div class="item-header">
+              <div id="zinger-cheese">Zinger Cheese Burger</div>
+              <div class="price">Rs. <span data-price>450</span></div>
+            </div>
+
+            <div class="food-img-wrap" aria-hidden="false">
+              <img
+                class="food-img"
+                src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=900&q=60&auto=format&fit=crop"
+                srcset="
+                  https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=400&q=60&auto=format&fit=crop 400w,
+                  https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=800&q=60&auto=format&fit=crop 800w,
+                  https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=1200&q=60&auto=format&fit=crop 1200w
+                "
+                sizes="(max-width:640px) 100vw, (max-width:992px) 50vw, 33vw"
+                alt="Zinger Cheese Burger"
+                loading="lazy"
+                width="1200" height="800">
+            </div>
+
+            <div class="card-actions">
+              <button class="btn primary add-to-cart" data-name="Zinger Cheese Burger" data-price="450" aria-label="Add Zinger Cheese Burger to cart">Add to cart</button>
+            </div>
+          </article>
+
+          <!-- Example additional card (Tower with 3D) -->
+          <article class="menu-card" role="listitem" aria-labelledby="tower">
+            <div class="item-header">
+              <div id="tower">Tower Burger</div>
+              <div class="price">Rs. <span data-price>550</span></div>
+            </div>
+
+            <figure>
+              <model-viewer
+                data-src="https://modelviewer.dev/shared-assets/models/glTF-Sample-Assets/2.0/Burger/glTF-Binary/Burger.glb"
+                data-ios-src="path/to/TowerBurger.usdz"
+                ar
+                ar-modes="webxr scene-viewer quick-look"
+                camera-controls
+                interaction-prompt="auto"
+                alt="3D preview of Tower Burger"
+                tabindex="0"
+                aria-label="3D preview: Tower Burger. Tap to interact or view in AR"
+                poster="https://modelviewer.dev/shared-assets/models/glTF-Sample-Assets/2.0/Burger/thumbnail.png"
+                loading="lazy">
+                <img slot="poster" src="https://modelviewer.dev/shared-assets/models/glTF-Sample-Assets/2.0/Burger/thumbnail.png" alt="">
+              </model-viewer>
+              <figcaption class="item-desc">Replace data-ios-src with a .usdz file for iOS Quick Look.</figcaption>
+            </figure>
+
+            <div class="card-actions">
+              <button class="btn primary add-to-cart" data-name="Tower Burger" data-price="550" aria-label="Add Tower Burger to cart">Add to cart</button>
+            </div>
+          </article>
+
+          <!-- Add other items (image-only) following the same pattern... -->
+          <!-- For brevity, a small selection is shown; copy pattern to all cards in your menu -->
+        </div>
+      </section>
+
+      <!-- More categories (showing one example category only in detail to keep file concise) -->
+      <section aria-labelledby="drinks">
+        <h2 id="drinks" class="category-title">Drinks & Dips</h2>
+        <div class="menu-grid" role="list">
+          <article class="menu-card" role="listitem" aria-labelledby="drink-500">
+            <div class="item-header"><div id="drink-500">Drink 500 ml</div><div class="price">Rs. <span data-price>120</span></div></div>
+            <p class="item-desc">Chilled & refreshing.</p>
+            <div class="card-actions">
+              <button class="btn primary add-to-cart" data-name="Drink 500 ml" data-price="120">Add to cart</button>
+            </div>
+          </article>
+          <article class="menu-card" role="listitem" aria-labelledby="water-500">
+            <div class="item-header"><div id="water-500">Water 500 ml</div><div class="price">Rs. <span data-price>70</span></div></div>
+            <div class="card-actions">
+              <button class="btn primary add-to-cart" data-name="Water 500 ml" data-price="70">Add to cart</button>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Cart toggle button -->
+  <button class="cart-toggle" id="cartToggle" aria-expanded="false" aria-controls="cartPanel" aria-label="Open cart">
+    Cart <span id="cartCount" class="cart-count" aria-live="polite">0</span>
+  </button>
+
+  <!-- Overlay -->
+  <div id="overlay" class="overlay" tabindex="-1" aria-hidden="true"></div>
+
+  <!-- Cart panel -->
+  <aside id="cartPanel" class="cart-panel" role="dialog" aria-modal="true" aria-labelledby="cartTitle" aria-hidden="true">
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <h3 id="cartTitle">Your Cart</h3>
+      <button class="btn" id="closeCart" aria-label="Close cart panel">Close</button>
+    </div>
+
+    <div class="cart-items" id="cartItems" aria-live="polite"></div>
+
+    <div class="cart-total" aria-hidden="false">
+      <div>Total</div>
+      <div id="cartTotal">Rs. 0</div>
+    </div>
+
+    <div style="display:flex;gap:8px;">
+      <button class="btn primary" id="checkoutBtn">Checkout</button>
+      <button class="btn" id="clearCartBtn">Clear</button>
+    </div>
+  </aside>
+
+  <script>
+    /*******************************
+     * 1) Lazy-load model-viewer sources (IntersectionObserver)
+     *******************************/
+    (function(){
+      const supportsIO = 'IntersectionObserver' in window;
+      const models = document.querySelectorAll('model-viewer[data-src]');
+
+      function loadModel(mv) {
+        if (mv.getAttribute('src')) return; // already set
+        mv.setAttribute('src', mv.dataset.src);
+        if (mv.dataset.iosSrc) mv.setAttribute('ios-src', mv.dataset.iosSrc);
+      }
+
+      if (!supportsIO) {
+        models.forEach(loadModel);
+        return;
+      }
+
+      const io = new IntersectionObserver((entries, obs) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            loadModel(entry.target);
+            obs.unobserve(entry.target);
+          }
+        });
+      }, {rootMargin: '300px 0px'});
+
+      models.forEach(mv => io.observe(mv));
+    })();
+
+    /*******************************
+     * 2) Simple accessible cart (local, client-side)
+     *******************************/
+    const CART_KEY = 'alfredough_cart_v1';
+    const cartToggle = document.getElementById('cartToggle');
+    const cartPanel = document.getElementById('cartPanel');
+    const overlay = document.getElementById('overlay');
+    const cartItemsNode = document.getElementById('cartItems');
+    const cartCountNode = document.getElementById('cartCount');
+    const cartTotalNode = document.getElementById('cartTotal');
+    const closeCartBtn = document.getElementById('closeCart');
+    const checkoutBtn = document.getElementById('checkoutBtn');
+    const clearCartBtn = document.getElementById('clearCartBtn');
+
+    let cart = loadCart();
+
+    // Attach add-to-cart handlers
+    document.querySelectorAll('.add-to-cart').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const name = btn.dataset.name || btn.closest('.menu-card').querySelector('[id]')?.textContent || 'Item';
+        const price = Number(btn.dataset.price || 0);
+        addToCart({ name, price, qty: 1 });
+      });
+    });
+
+    cartToggle.addEventListener('click', toggleCart);
+    closeCartBtn.addEventListener('click', closeCart);
+    overlay.addEventListener('click', closeCart);
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && cartPanel.classList.contains('open')) closeCart();
+    });
+
+    checkoutBtn.addEventListener('click', () => {
+      // Placeholder: integrate your checkout / order flow here
+      if (Object.keys(cart).length === 0) {
+        alert('Your cart is empty.');
+        return;
+      }
+      const summary = Object.values(cart).map(i => `${i.qty}× ${i.name} — Rs. ${i.qty * i.price}`).join('\n');
+      alert(`Checkout placeholder\n\n${summary}\n\nTotal: Rs. ${calcTotal()}\n\nImplement checkout integration to complete orders.`);
+    });
+
+    clearCartBtn.addEventListener('click', () => {
+      if (!confirm('Clear cart?')) return;
+      cart = {};
+      saveCart();
+      renderCart();
+    });
+
+    function loadCart() {
+      try {
+        const raw = localStorage.getItem(CART_KEY);
+        return raw ? JSON.parse(raw) : {};
+      } catch { return {}; }
+    }
+    function saveCart() {
+      try { localStorage.setItem(CART_KEY, JSON.stringify(cart)); } catch {}
+    }
+    function addToCart(item) {
+      const key = slug(item.name);
+      if (cart[key]) cart[key].qty += item.qty;
+      else cart[key] = { name: item.name, price: item.price, qty: item.qty };
+      saveCart();
+      renderCart();
+      // Provide a small visual confirmation
+      cartToggle.animate([{ transform: 'scale(1.06)' }, { transform: 'scale(1)' }], { duration: 220 });
+    }
+    function removeFromCart(key) {
+      delete cart[key];
+      saveCart();
+      renderCart();
+    }
+    function changeQty(key, delta) {
+      if (!cart[key]) return;
+      cart[key].qty = Math.max(1, cart[key].qty + delta);
+      saveCart();
+      renderCart();
+    }
+    function calcTotal() {
+      return Object.values(cart).reduce((s,i) => s + (i.price * i.qty), 0);
+    }
+    function renderCart() {
+      cartItemsNode.innerHTML = '';
+      const entries = Object.entries(cart);
+      if (entries.length === 0) {
+        cartItemsNode.innerHTML = '<div class="item-desc">Your cart is empty.</div>';
+      } else {
+        entries.forEach(([key, item]) => {
+          const row = document.createElement('div');
+          row.className = 'cart-item';
+          row.innerHTML = `
+            <div class="meta" style="flex:1">
+              <div style="font-weight:700">${escapeHtml(item.name)}</div>
+              <div style="color:var(--muted);font-size:0.9rem">Rs. ${item.price} each</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="qty-controls" aria-label="Quantity controls">
+                <button class="btn" data-action="dec" data-key="${key}" aria-label="Decrease quantity">−</button>
+                <div aria-live="polite" style="min-width:28px;text-align:center">${item.qty}</div>
+                <button class="btn" data-action="inc" data-key="${key}" aria-label="Increase quantity">+</button>
+              </div>
+              <div style="min-width:70px;text-align:right;font-weight:700">Rs. ${item.qty * item.price}</div>
+              <button class="btn" data-action="remove" data-key="${key}" aria-label="Remove item">✕</button>
+            </div>
+          `;
+          cartItemsNode.appendChild(row);
+        });
+      }
+      cartCountNode.textContent = Object.values(cart).reduce((s,i)=>s+i.qty,0);
+      cartTotalNode.textContent = 'Rs. ' + calcTotal();
+
+      // delegate cart item buttons
+      cartItemsNode.querySelectorAll('button[data-action]').forEach(b => {
+        b.onclick = (e) => {
+          const key = b.dataset.key;
+          const action = b.dataset.action;
+          if (action === 'inc') changeQty(key, +1);
+          if (action === 'dec') changeQty(key, -1);
+          if (action === 'remove') removeFromCart(key);
+        };
+      });
+    }
+
+    function toggleCart() {
+      const open = cartPanel.classList.toggle('open');
+      overlay.classList.toggle('visible', open);
+      cartPanel.setAttribute('aria-hidden', open ? 'false' : 'true');
+      overlay.setAttribute('aria-hidden', open ? 'false' : 'true');
+      cartToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      if (open) {
+        // move focus to close button for accessibility
+        closeCartBtn.focus();
+      } else {
+        cartToggle.focus();
+      }
+    }
+    function closeCart() {
+      cartPanel.classList.
