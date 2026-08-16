@@ -5,9 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Alfredough Pizza Cafe - Interactive 3D Menu</title>
 
-  <!-- model-viewer loaded async -->
-  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js" async></script>
-
   <style>
     :root{
       --bg:#121212;
@@ -84,17 +81,6 @@
       width:100%;
       height:100%;
       object-fit:cover;
-      display:block;
-    }
-
-    /* 3D Viewer */
-    model-viewer{
-      width:100%;
-      aspect-ratio:16/9;
-      background-color:#2a2a2a;
-      border-radius:8px;
-      overflow:hidden;
-      min-height:160px;
       display:block;
     }
 
@@ -218,7 +204,7 @@
         <h2 id="chicken-burgers" class="category-title">Chicken Burgers</h2>
         <div class="menu-grid" role="list">
 
-          <!-- CARD: Zinger (3D/AR) -->
+          <!-- CARD: Zinger (3D/AR removed) -->
           <article class="menu-card" role="listitem" aria-labelledby="zinger-title">
             <div class="item-header">
               <div id="zinger-title">Zinger Burger</div>
@@ -226,22 +212,10 @@
             </div>
 
             <figure>
-              <!-- model-viewer lazy: data-src + data-ios-src. Poster flagged in slot. -->
-              <model-viewer
-                data-src="https://modelviewer.dev/shared-assets/models/glTF-Sample-Assets/2.0/Burger/glTF-Binary/Burger.glb"
-                data-ios-src="path/to/ZingerBurger.usdz"
-                ar
-                ar-modes="webxr scene-viewer quick-look"
-                camera-controls
-                interaction-prompt="auto"
-                alt="3D preview of Zinger Burger"
-                tabindex="0"
-                aria-label="3D preview: Zinger Burger. Tap to interact or view in AR"
-                poster="https://modelviewer.dev/shared-assets/models/glTF-Sample-Assets/2.0/Burger/thumbnail.png"
-                loading="lazy">
-                <img slot="poster" src="https://modelviewer.dev/shared-assets/models/glTF-Sample-Assets/2.0/Burger/thumbnail.png" alt="">
-              </model-viewer>
-              <figcaption class="item-desc">Tap to rotate. Use AR on supported devices.</figcaption>
+              <div class="food-img-wrap" aria-hidden="false">
+                <img class="food-img" src="https://modelviewer.dev/shared-assets/models/glTF-Sample-Assets/2.0/Burger/thumbnail.png" alt="Zinger Burger" loading="lazy" width="1200" height="800">
+              </div>
+              <figcaption class="item-desc">3D/AR preview removed.</figcaption>
             </figure>
 
             <div class="card-actions">
@@ -281,7 +255,7 @@
             </div>
           </article>
 
-          <!-- Example additional card (Tower with 3D) -->
+          <!-- Example additional card (Tower - 3D/AR removed) -->
           <article class="menu-card" role="listitem" aria-labelledby="tower">
             <div class="item-header">
               <div id="tower">Tower Burger</div>
@@ -289,21 +263,10 @@
             </div>
 
             <figure>
-              <model-viewer
-                data-src="https://modelviewer.dev/shared-assets/models/glTF-Sample-Assets/2.0/Burger/glTF-Binary/Burger.glb"
-                data-ios-src="path/to/TowerBurger.usdz"
-                ar
-                ar-modes="webxr scene-viewer quick-look"
-                camera-controls
-                interaction-prompt="auto"
-                alt="3D preview of Tower Burger"
-                tabindex="0"
-                aria-label="3D preview: Tower Burger. Tap to interact or view in AR"
-                poster="https://modelviewer.dev/shared-assets/models/glTF-Sample-Assets/2.0/Burger/thumbnail.png"
-                loading="lazy">
-                <img slot="poster" src="https://modelviewer.dev/shared-assets/models/glTF-Sample-Assets/2.0/Burger/thumbnail.png" alt="">
-              </model-viewer>
-              <figcaption class="item-desc">Replace data-ios-src with a .usdz file for iOS Quick Look.</figcaption>
+              <div class="food-img-wrap" aria-hidden="false">
+                <img class="food-img" src="https://modelviewer.dev/shared-assets/models/glTF-Sample-Assets/2.0/Burger/thumbnail.png" alt="Tower Burger" loading="lazy" width="1200" height="800">
+              </div>
+              <figcaption class="item-desc">3D/AR preview removed.</figcaption>
             </figure>
 
             <div class="card-actions">
@@ -368,34 +331,9 @@
 
   <script>
     /*******************************
-     * 1) Lazy-load model-viewer sources (IntersectionObserver)
+     * 1) Lazy-load model-viewer sources (removed)
      *******************************/
-    (function(){
-      const supportsIO = 'IntersectionObserver' in window;
-      const models = document.querySelectorAll('model-viewer[data-src]');
-
-      function loadModel(mv) {
-        if (mv.getAttribute('src')) return; // already set
-        mv.setAttribute('src', mv.dataset.src);
-        if (mv.dataset.iosSrc) mv.setAttribute('ios-src', mv.dataset.iosSrc);
-      }
-
-      if (!supportsIO) {
-        models.forEach(loadModel);
-        return;
-      }
-
-      const io = new IntersectionObserver((entries, obs) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            loadModel(entry.target);
-            obs.unobserve(entry.target);
-          }
-        });
-      }, {rootMargin: '300px 0px'});
-
-      models.forEach(mv => io.observe(mv));
-    })();
+    // Model-viewer and iOS Quick Look references have been removed.
 
     /*******************************
      * 2) Simple accessible cart (local, client-side)
@@ -534,4 +472,24 @@
       }
     }
     function closeCart() {
-      cartPanel.classList.
+      cartPanel.classList.remove('open');
+      overlay.classList.remove('visible');
+      cartPanel.setAttribute('aria-hidden', 'true');
+      overlay.setAttribute('aria-hidden', 'true');
+      cartToggle.setAttribute('aria-expanded', 'false');
+      cartToggle.focus();
+    }
+
+    // small helpers
+    function slug(str){
+      return String(str).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+    }
+    function escapeHtml(s){
+      return String(s).replace(/[&<>\"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    }
+
+    // initial render
+    renderCart();
+  </script>
+</body>
+</html>
